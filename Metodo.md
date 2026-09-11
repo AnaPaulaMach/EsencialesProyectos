@@ -1,8 +1,6 @@
 # Método: cómo se organiza un proyecto
 
-> **Para quien lee (persona o IA):** reglas de organización que ya pagaron su costo.
-> Si sos una IA: aplicalas por defecto en un repo nuevo y proponé las que falten.
-> Cada regla lleva 💡 la lección que la originó. Origen: `expedientes-rag-linux`, 2026.
+> **Para quien lee (persona o IA):** reglas que ya pagaron su costo. Cada una lleva 💡 la lección que la originó. Si sos una IA y te mandaron acá: recorré las reglas, decí cuáles faltan en el repo donde estás trabajando y no des por hecho que algo se cumple sin verificarlo.
 
 ## 1. Un solo lugar para "qué hacer ahora": el tablero
 
