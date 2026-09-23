@@ -1,10 +1,7 @@
 # Seguridad del repo y del CI
 
-> **Para quien lee (persona o IA):** esto es una checklist para arrancar o auditar un repo.
-> Cada punto trae *qué*, *por qué* (la lección que lo originó) y *cómo* (copiable).
-> Si sos una IA ayudando a montar un proyecto: recorré la checklist en orden, proponé cada
-> ítem que falte y **no des por hecho que algo protege si no lo verificaste en el repo**.
-> Origen: `expedientes-rag-linux`, 2026-08 → 2026-09. Las lecciones están marcadas con 💡.
+**Alcance:** checklist para arrancar o auditar un repo. Cada punto trae *qué*, 💡 *por qué* y
+*cómo* (copiable).
 
 ---
 
@@ -21,6 +18,8 @@
 - [ ] Los hallazgos llegan **al lugar donde el equipo mira** (issue en el tablero), no a la pestaña Actions
 - [ ] Accesos con escritura: los mínimos, con 2FA confirmado, revisados cada tanto
 - [ ] Sabés qué protección de `main` tenés (y cuál NO, por el plan)
+- [ ] El server clona con una **deploy key de solo lectura**, no con un token personal
+- [ ] Todo secreto que se pegó en un chat (con personas o con IA) se rotó
 
 ---
 
@@ -45,6 +44,9 @@ logs/
 *.log
 tmp/
 ```
+Un secreto pegado en un chat, un issue o una captura cuenta igual que uno commiteado:
+**quemado, se rota** (ver `Trabajar-con-IA.md` §7).
+
 Convención: cada secreto tiene su `.example` versionado con el valor `cambiame`, así el
 escáner sabe que es un placeholder y un clon limpio sabe qué variables necesita.
 
@@ -83,7 +85,7 @@ Falsos positivos → `.betterleaks.toml` con allowlist **por regex y con el porq
 **Qué:** `pip-audit` en cada push/PR **y en un cron semanal**.
 
 💡 **Por qué:** la base de CVEs cambia aunque el repo no. Un repo quieto un mes puede
-tener tres CVEs nuevos sin que nadie haya tocado nada. El cron es lo que lo detecta.
+tener CVEs nuevos sin que nadie haya tocado nada. El cron es lo que lo detecta.
 
 **Modo observación (`continue-on-error: true`):** avisa, no bloquea PRs. Un CVE en una
 transitiva no debería frenar a alguien que está tocando otra cosa. Ver §8 para que el aviso
@@ -91,11 +93,11 @@ llegue igual.
 
 ## 4. Auditar lo que corre en el server, no lo que CI resuelve
 
-💡 **Por qué (la lección grande):** con `requirements.txt` con rangos (`openai>=3.3,<4`),
-CI instala **lo último** dentro del rango. El server corre la imagen que se buildeó hace
-meses. pip-audit daba verde con `openai 3.9` mientras el server corría `3.3.1`.
-Peor: lo que el `Dockerfile` instala **fuera** de requirements (wheels de NVIDIA,
-`onnxruntime-gpu` pineado a mano) no estaba en ningún archivo → **nunca se auditó**.
+💡 **Por qué (el más importante):** con `requirements.txt` con rangos (`libx>=1.3,<2`),
+CI instala **lo último** dentro del rango, pero el server corre la imagen que se buildeó hace
+meses. pip-audit puede dar verde con `libx 1.9` mientras el server corre `1.3.1`.
+Peor: lo que el `Dockerfile` instala **fuera** de requirements (wheels pineados a mano) no
+está en ningún archivo → **nunca se audita**.
 
 **Cómo:** una foto exacta del contenedor vivo, versionada en el repo:
 ```bash
@@ -122,7 +124,7 @@ docker exec <contenedor-api> pip freeze > eval_set/requirements-server.txt
   entre dos rebuilds.
 
 ⚠️ Footguns medidos:
-- `--no-deps` **no evita** que pip-audit resuelva las dependencias (verificado). Está bien
+- `--no-deps` **no evita** que pip-audit resuelva las dependencias. Está bien
   dejarlo, pero no confiar en que "solo lee la lista".
 - No se puede correr localmente en Windows sobre un freeze de Linux: `uvloop` (que arrastra
   `uvicorn[standard]`) no compila en Windows. La prueba real es el log de CI.
@@ -144,8 +146,8 @@ gratis en plan Free. `Settings → Advanced Security`:
 | Automatic dependency submission | ❌ | solo Maven/Gradle |
 
 💡 **Por qué version updates NO para pip:** Dependabot respeta el techo pero **sube el piso**
-(`openai>=3.3,<4` → `>=3.9.0,<4`). Si el server corre 3.3.1, mergear eso hace que CI instale
-3.9 y **reabre la brecha CI≠server** que la foto del §4 cerró. Las versiones del server las
+(`libx>=1.3,<2` → `>=1.9.0,<2`). Si el server corre 1.3.1, mergear eso hace que CI instale
+1.9 y **reabre la brecha CI≠server** que la foto del §4 cerró. Las versiones del server las
 decide un rebuild deliberado, no un bot. Para actions sí paga: son pines exactos (`@v7`) y
 nadie más los mira.
 
@@ -194,8 +196,8 @@ se compromete, el daño es exactamente lo que le diste.
 
 ## 8. Que el aviso llegue a donde el equipo mira
 
-💡 **Por qué:** un radar que suena en una habitación vacía no existe. pip-audit corría cada
-lunes y dejaba el resultado en la pestaña Actions; nadie entraba. El problema no era de
+💡 **Por qué:** un radar que suena en una habitación vacía no existe. Un pip-audit semanal que
+deja el resultado en la pestaña Actions no lo lee nadie. El problema no era de
 severidad (bloquear o no) sino de **entrega**.
 
 **Cómo:** el run programado, si hay hallazgos, abre un issue con **título fijo** y etiqueta;
@@ -215,9 +217,6 @@ la misma puerta que todo lo demás.
 ```
 Requiere `issues: write` en ese workflow, y que el Project tenga **Auto-add** para `is:issue is:open`.
 
-La alternativa "sacar `continue-on-error` del run programado" manda un mail a quien tocó el
-cron por última vez: frágil y sin rastro en el tablero.
-
 ## 9. Accesos y protección de `main`
 
 - **Colaboradores con escritura = puertas.** Los mínimos. Confirmar **2FA** en cada cuenta
@@ -225,23 +224,31 @@ cron por última vez: frágil y sin rastro en el tablero.
 - **Branch protection / Rulesets en repo privado requieren GitHub Pro** (o repo público).
   En Free, cualquiera con write puede `push --force` a `main` y ningún check lo frena.
   Consecuencia honesta: en Free, tests y radares son **radar, no barrera**. `main` puede
-  estar en rojo días sin que nada lo impida (pasó: 3 días por una función que superó el tope
-  del radar). Compensación: disciplina de equipo + mirar el estado de `main` al arrancar.
-
-## 10. Radares de código como CI (deuda cognitiva)
-
-No es seguridad estricta pero corre en el mismo lugar y falla igual:
-- `medir_comentarios.py`: comentarios máx 2 líneas (nº de issue + invariante; la historia va al issue).
-- `medir_funciones.py`: funciones bajo un tope de líneas/anidamiento; si se pasa, **partirla en
-  etapas nombradas**, no subir el tope. Excepciones explícitas en una lista, con el issue.
-
-💡 **Por qué:** una regla en prosa se olvida; una regla que pone `main` en rojo, no.
+  estar en rojo días sin que nada lo impida. Compensación: disciplina de equipo + mirar el
+  estado de `main` al arrancar.
+- **El server no usa tu token.** Para que el server haga `git pull`, una **deploy key** SSH
+  del repo, de solo lectura, con un alias en `~/.ssh/config`. Nunca un token personal en
+  `~/.git-credentials` ni en la URL del remote.
+  💡 Un token personal con scope `repo` en texto plano da escritura a **todos** los repos de
+  esa persona a cualquiera que lea ese archivo; una deploy key da lectura a uno solo.
+  ```bash
+  ssh-keygen -t ed25519 -f ~/.ssh/<proyecto>_deploy -N "" -C "<proyecto>-server"
+  # la .pub va a Settings → Deploy keys (sin "Allow write access")
+  # ~/.ssh/config:
+  #   Host github.com-<proyecto>
+  #     HostName github.com
+  #     IdentityFile ~/.ssh/<proyecto>_deploy
+  #     IdentitiesOnly yes
+  git remote set-url origin git@github.com-<proyecto>:<owner>/<repo>.git
+  ssh -T git@github.com-<proyecto>
+  ```
 
 ---
 
 ## Lo que este nivel NO cubre
 
-Todo lo anterior es el repo y el CI. Son otra capa y otra checklist:
+Todo lo anterior es el repo y el CI. Lo ya aprendido del server (compartido, salud, candados
+de servicios internos) está en [`Operacion-server.md`](Operacion-server.md). Son otra capa:
 - **API/server:** autenticación (API key + allowlist), TLS, rate limit, RLS/permisos por fila.
 - **Infra:** qué puertos bindean a `127.0.0.1` vs LAN, qué corre como root, backups.
 - **Datos:** qué información sensible entra a logs y a embeddings.

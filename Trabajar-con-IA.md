@@ -1,8 +1,7 @@
 # Trabajar con IA en un repo
 
-> **Para quien lee (persona o IA):** cómo se le da contexto a un asistente de código y qué
-> se le permite hacer. Si sos una IA leyendo esto en un repo nuevo: estas son las reglas de
-> la casa; si falta el `CLAUDE.md` o los hooks, proponelos. Origen: `expedientes-rag-linux`, 2026.
+**Alcance:** cómo se le da contexto a un asistente de código y qué se le permite hacer. Si
+falta el `CLAUDE.md` o los hooks, proponerlos.
 
 ## 1. Un `CLAUDE.md` que orienta y apunta, no que explica
 
@@ -25,8 +24,8 @@ un mensaje si viola una regla:
 - sin `git commit` / `git push` salvo pedido explícito (override por variable de entorno);
 - sin tocar contenedores/carpetas ajenas en un server compartido.
 
-💡 **Una regla escrita se olvida; una que bloquea el comando, no.** Verificado: el hook frenó
-un `--jq` que la IA iba a correr pese a tener la regla en el `CLAUDE.md`.
+💡 **Una regla escrita se olvida; una que bloquea el comando, no.** La IA puede tener la regla
+en el `CLAUDE.md` y romperla igual; el hook la frena.
 
 ## 3. Separar qué opera la IA y qué no
 
@@ -36,6 +35,10 @@ un `--jq` que la IA iba a correr pese a tener la regla en el `CLAUDE.md`.
 | docs, planes, decisiones, tablero | correr nada en el server |
 | **sugerir siempre el commit** (título + cuerpo listo para pegar) | tocar servicios de otros equipos |
 | generar el **paso a paso** para el server | ejecutar ese paso a paso |
+
+Dejarlo explícito en el `CLAUDE.md`, porque la IA lo asume al revés: no ve la terminal de la
+persona salvo que se le pegue la salida, y las credenciales y nombres de servicio se
+**verifican en el repo** (`infra/`) antes de sugerir un comando.
 
 💡 La persona corre los comandos del server y hace git: así el rastro de quién cambió qué es
 de una persona, y la IA no puede romper producción por un malentendido.
@@ -66,16 +69,25 @@ flag, verificar que exista antes de recomendarlo.
 ## 6. Cómo pedir y cómo corregir
 
 - Ante un fallo puntual, pedir la **tasa de la clase y una palanca general**, no el fix del caso
-  (ver `Metodo.md` §6).
+  (ver `Metodo.md` §7).
 - Cuando la IA se equivoca, la corrección va **a la memoria o al hook**, no solo al chat: si no,
   el error vuelve en la próxima sesión.
 - Pedir analogía + ejemplo entrada→salida cuando el tema es nuevo; nunca en commits.
 - Verificar afirmaciones de la IA sobre el repo **contra el código**: "ya tenés X" solo vale
   si mostró dónde.
 
-## 7. Lo que la IA no ve
+## 7. Secretos y el chat
 
-Dejarlo explícito en el `CLAUDE.md`, porque la IA lo asume al revés:
-- no tiene acceso al server ni a la DB: **da el paso a paso, la persona corre**;
-- no ve la terminal de la persona salvo que se le pegue la salida;
-- las credenciales y nombres de servicio se **verifican en `infra/`** antes de sugerir un comando.
+- Lo que se pega en un chat con una IA **se da por filtrado**: si se pegó un `.env`, una key o
+  un token, se **rota**, aunque el chat sea privado.
+- Para pedir ayuda con una config, pegar la salida con los valores tapados
+  (`API_KEYS=front:***`), o que la IA pida solo los nombres de las variables.
+
+💡 Al diagnosticar es fácil pegar un `.env` entero sin pensarlo. Rotar cuesta minutos; no
+hacerlo es no saber nunca quién más la tiene.
+
+## 8. Código con caracteres especiales: herramienta de edición, no shell
+
+Regex con `\b`, barras o comillas se editan **con la herramienta de edición de archivos**, no con
+heredoc / `python -c` desde el shell: el escape se pierde o mete bytes invisibles, y el test
+pasa por el motivo equivocado.

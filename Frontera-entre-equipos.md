@@ -1,13 +1,10 @@
 # Frontera entre equipos
 
-> **Para quien lee (persona o IA):** reglas para cuando tu código es una pieza de un sistema
-> que otro equipo termina (un front, un cliente, otro servicio). Cada una lleva 💡 la lección
-> que la originó. Si sos una IA y te mandaron acá: verificá cuáles de estas están cubiertas
-> en el repo donde estás trabajando y decí cuáles faltan. Origen: un back consumido por un
-> front de otro equipo, 2026.
+**Alcance:** cuando tu código es una pieza de un sistema que otro equipo termina (un front,
+un cliente, otro servicio).
 
-**La idea de fondo:** en la segunda mitad de ese proyecto, las fallas más dañinas para el
-usuario **no eran del back**: venían del otro lado del contrato. Eso se diseña desde el día
+**La idea de fondo:** cuando el sistema madura, muchas de las fallas más dañinas para el
+usuario **no son del back**: vienen del otro lado del contrato. Eso se diseña desde el día
 uno o se descubre después de semanas de arreglar el lado equivocado.
 
 ## 1. Loggear lo que llega, no solo lo que se responde
@@ -15,53 +12,48 @@ uno o se descubre después de semanas de arreglar el lado equivocado.
 Guardar el payload **recibido** en cada request (o un resumen fiel: qué campos vinieron, con
 qué tamaño, vacíos o no).
 
-💡 Se midió una falla que parecía propia; el log del payload mostró que 2 casos eran nuestros
-y 22 del cliente, que en una ruta mandaba un campo vacío. Sin ese log, la falla se arreglaba
-del lado equivocado.
+💡 Una falla que parece propia puede ser un campo que el cliente manda vacío en una ruta. Sin
+el log de lo recibido, se arregla del lado equivocado.
 
 ## 2. Una clave de correlación compartida, desde el primer día
 
 Un identificador de request que viaje en ambas direcciones y quede en los logs de los dos
 lados.
 
-💡 Costó semanas ponerlo después; cuesta una línea ponerlo antes. Al cruzarlo apareció el
-cuello real: no era técnico, era la tasa de feedback de los usuarios (3%).
+💡 Ponerlo después cuesta semanas; antes, una línea. Y cruzar los dos lados suele mostrar
+cuellos que ninguno ve solo (por ejemplo, que casi nadie deja feedback).
 
 ## 3. El contrato es un archivo versionado, no un chat
 
 Rutas, campos, formatos, quién manda qué, qué pasa si falta. En el repo, con fecha.
-
-💡 Cada acuerdo verbal se rompió sin que nadie lo notara. Lo que estaba escrito se pudo
-señalar; lo que no, se re-discutió.
 
 ## 4. Una prueba obligatoria del otro lado por cada ruta
 
 Pedirle al otro equipo una prueba automática que falle si una ruta deja de mandar lo pactado.
 Tu código no puede compensar lo que no recibe.
 
-💡 La ruta que mandaba el campo vacío era nueva; nadie la probó contra el contrato.
-
 ## 5. Un solo punto de conversión de formato
 
 Si un identificador tiene forma "cruda" de un lado y normalizada del otro, la conversión
 vive en **un** lugar, documentado. Nunca "arreglar" el formato en más de un sitio.
 
-💡 Un carácter especial en una URL se codificaba en un lado y se perdía en otro; se
-"arregló" tres veces en tres lugares antes de unificarlo.
+💡 Un carácter especial en una URL (`#`, `%`) que se codifica en un lado y se pierde en otro
+termina "arreglado" en varios lugares que se contradicen.
 
 ## 6. Conocer el visor antes de diseñar la salida
 
 Qué renderiza y qué no (tablas, negritas, enlaces), y una prueba que lo verifique.
 
-💡 El visor no soportaba tablas; las respuestas con tabla se veían como texto roto durante
-semanas hasta que un usuario lo dijo.
+💡 Si el visor no soporta tablas, una respuesta con tabla se ve como texto roto, y nadie del
+equipo lo nota: lo nota el usuario.
 
 ## 7. El timeout del otro lado es tu límite real
 
 Lo que tarde más que el timeout del cliente **se ve como caída**, aunque termine bien. Lo que
 puede tardar más se pre-calienta o se responde en dos pasos; no se optimiza el segundo 61.
 
-💡 "No responde" era un timeout de 60 s del front sobre un proceso que terminaba a los 70.
+💡 "No responde" suele ser un timeout del cliente sobre un proceso que termina bien, unos
+segundos tarde.
 
 ## 8. Qué señal del usuario sirve
 
@@ -70,12 +62,24 @@ puede tardar más se pre-calienta o se responde en dos pasos; no se optimiza el 
 - La tasa de feedback es el techo de todo análisis por usuario: antes de pedir más
   telemetría, pedir más feedback.
 
-💡 Los pulgares arriba en resúmenes no correlacionaban con nada verificable.
-
 ## 9. Recursos compartidos se negocian, no se asumen
 
 Si el otro equipo usa la misma GPU, base o cola, su pico es tu timeout. Cualquier medición
 "tuya" incluye la de ellos.
 
-💡 El verificador del cliente usaba el mismo generador; el consumo de GPU nunca fue solo
-nuestro.
+## 10. Tu log solo ve lo que el otro dejó pasar
+
+Si el otro lado resuelve o reescribe parte de los casos antes de mandarlos, tu log no tiene el
+**denominador**. La tasa real se mide sobre el log del otro lado (o cruzando los dos por la
+clave del §2).
+
+💡 Si el front transforma parte de los casos antes de enviarlos, tu log nunca los ve y la tasa
+que medís es de otra población.
+
+## 11. Mantené tu red aunque el otro frene hoy
+
+Que el otro equipo filtre un caso malo **hoy** no te exime de la guarda propia: su filtro
+cambia con su próximo deploy y vos no te enterás. La tuya es barata si es angosta y medida.
+
+💡 Mientras el filtro del otro lado no exista (o cambie), la guarda propia es lo único que frena
+esos casos.
