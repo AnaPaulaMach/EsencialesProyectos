@@ -12,4 +12,5 @@ estás trabajando, y decí qué falta ahí. No des por hecho que algo se cumple 
 - [Método](Metodo.md) — organizar (tablero, decisiones, docs), medir (clase, radares, guardas), decidir (error visible, alcance de un fix)
 - [Frontera entre equipos](Frontera-entre-equipos.md) — cuando otro equipo termina tu sistema: log de lo que llega, correlación, contrato, denominador del otro lado
 - [Operación del server](Operacion-server.md) — server propio y compartido: limpiar Docker sin prune, salud visible, RAM, candados internos
+- [Incidentes y gráficos](Incidentes-y-graficos.md) — ver el pico (qué gráficos, cómo según el proyecto) y el manual de incidentes de una página (qué estándar copiar)
 - [Trabajar con IA](Trabajar-con-IA.md) — CLAUDE.md, hooks, qué opera la IA y qué no, secretos en el chat
