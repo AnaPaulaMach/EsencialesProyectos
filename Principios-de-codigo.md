@@ -19,6 +19,8 @@ Anotado 2026-10-08.
 - [ ] Antes de paralelizar: un diagrama de qué pasos son independientes y dónde se sincronizan
 - [ ] Si es un chatbot o agente: máquina de estados dibujada, con los estados de error
 - [ ] Auditoría de seguridad automática, semanal y al salir cada modelo nuevo
+- [ ] Cada mensaje de error termina en algo que la persona puede hacer
+- [ ] Lo que sirve para decidir no desaparece sin dejar rastro visible
 
 ---
 
@@ -153,3 +155,44 @@ secretos y CVEs conocidas; esta mira la lógica.
 Fuentes: hilo en X de @marcoporracin (2026-10-07) y respuestas;
 [routines](https://code.claude.com/docs/en/routines), [github-actions](https://code.claude.com/docs/en/github-actions),
 [authentication](https://code.claude.com/docs/en/authentication).
+
+---
+
+# Interfaz
+
+## 13. Un error termina en algo que la persona puede hacer
+
+Todo mensaje de error dice qué hacer a continuación, con algo que esté al alcance de quien lo
+lee: reintentar, corregir un dato, seguir por otro camino. No derivar a un área o a un rol sin
+saber que existe y que va a atender.
+
+💡 Un mensaje que deriva a alguien que no existe es un callejón sin salida, aunque sea amable.
+
+## 14. El tono de la pantalla es el del producto, no el del equipo
+
+Antes de escribir un texto, mirar qué registro ya usa la interfaz y seguirlo. Frases completas
+y sin coloquialismos.
+
+💡 El equipo escribe como habla; quien usa el sistema lee lo que el producto le dice.
+
+## 15. Lo que sirve para decidir no desaparece en silencio
+
+Si un dato se usa para tomar decisiones, lo borrado, anulado o corregido sigue a la vista de
+quien decide, marcado como tal (quién, cuándo, por qué). No se esconde detrás de un permiso
+aparte.
+
+💡 Diseñar para el peor caso: configuración mal hecha, error o mal uso. Lo que falta sin aviso
+no se nota.
+
+## 16. Un solo camino a cada cosa, en un lugar que se vea
+
+- Dos avisos que llevan a lo mismo confunden; elegir uno.
+- Lo que queda al final de una lista larga no se ve.
+- Separar en dos vistas solo si en cada una se hace algo distinto; si no, una lista y una marca
+  por fila.
+
+## 17. Las etiquetas se prueban con datos reales
+
+Un texto que en el diseño parece claro puede leerse de otra forma con números de verdad (un tope
+que parece un total, un estado que parece un error). Se lee en pantalla, con datos reales, antes
+de darlo por cerrado.
